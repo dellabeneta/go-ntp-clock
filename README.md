@@ -1,7 +1,7 @@
 ## NTP Clock
 
 ![Pipeline](https://github.com/dellabeneta/go-ntp-clock/actions/workflows/main.yaml/badge.svg)
-![GHCR version](https://img.shields.io/badge/ContainerVersion-v1-blue)
+![GHCR version](https://img.shields.io/badge/ContainerVersion-v4-blue)
 
 Um serviço web para consulta de hora via NTP (Network Time Protocol), desenvolvido em Go. Consulte rapidamente a hora atual usando uma interface web simples e responsiva.
 
