@@ -23,7 +23,7 @@
 
         async function syncTime() {
             try {
-                const response = await fetch('http://localhost:8080/time');
+                const response = await fetch('/time');
                 const data = await response.json();
 
                 // **AQUI ESTÁ A MELHORIA**
