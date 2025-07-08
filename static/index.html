@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relógio Simples</title>
+    <style>
+        body, html {
+            height: 100%; margin: 0; display: flex; justify-content: center;
+            align-items: center; background-color: #121212; color: #e0e0e0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #clock { font-size: 15vw; font-weight: bold; }
+        .error { color: #cf6679; /* Cor vermelha para erros */ }
+    </style>
+</head>
+<body>
+
+    <div id="clock">Sincronizando...</div>
+
+    <script>
+        const clockElement = document.getElementById('clock');
+        let timeOffset = 0;
+
+        async function syncTime() {
+            try {
+                const response = await fetch('http://localhost:8080/time');
+                const data = await response.json();
+
+                // **AQUI ESTÁ A MELHORIA**
+                // Verifica se a resposta contém um erro enviado pelo nosso servidor Go.
+                if (data.error) {
+                    console.error("Erro do servidor:", data.error);
+                    clockElement.textContent = "Falha";
+                    clockElement.classList.add("error"); // Adiciona a classe de erro para mudar a cor.
+                    return; // Para a execução se houve erro.
+                }
+                
+                const serverTime = new Date(data.time);
+                const clientTime = new Date();
+                timeOffset = serverTime.getTime() - clientTime.getTime();
+
+                // Inicia o relógio local apenas na primeira sincronização bem-sucedida.
+                if (!window.clockInterval) {
+                    updateClock(); // Chama uma vez para exibir a hora imediatamente.
+                    window.clockInterval = setInterval(updateClock, 1000);
+                }
+
+            } catch (error) {
+                console.error("Erro na comunicação:", error);
+                clockElement.textContent = "Erro";
+                clockElement.classList.add("error");
+            }
+        }
+
+        function updateClock() {
+            const correctedTime = new Date(new Date().getTime() + timeOffset);
+            const hours = String(correctedTime.getHours()).padStart(2, '0');
+            const minutes = String(correctedTime.getMinutes()).padStart(2, '0');
+            const seconds = String(correctedTime.getSeconds()).padStart(2, '0');
+            clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        syncTime();
+    </script>
+
+</body>
+</html>

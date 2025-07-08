@@ -1,0 +1,12 @@
+# Ignorar arquivos de configuração do Docker
+Dockerfile
+.dockerignore
+
+# Ignorar arquivos de deploy (Kubernetes)
+k3s/
+
+# Ignorar arquivos de automação do GitHub
+.github/
+
+# Ignorar arquivos de imagem que não são usados
+icon.png

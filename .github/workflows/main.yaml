@@ -1,0 +1,70 @@
+name: CI/CD Pipeline
+
+on:
+  workflow_dispatch: {}
+
+  push:
+    branches: [ main ]
+    paths:
+      - "static/**"
+      - "main.go"
+      - "Dockerfile"
+      - "k3s/deployment.yaml"
+      - "k3s/service.yaml"
+      - "k3s/namespace.yaml"
+
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "static/**"
+      - "main.go"
+      - "Dockerfile"
+      - "k3s/deployment.yaml"
+      - "k3s/service.yaml"
+      - "k3s/namespace.yaml"
+    
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Obter código-fonte
+        uses: actions/checkout@v4
+
+      - name: Fazer Login no GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir e enviar imagem Docker
+        run: |
+          NEW_VERSION="v${{ github.run_number }}"
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/time:$NEW_VERSION"
+          
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Obter código-fonte
+        uses: actions/checkout@v4
+
+      - name: Configurar acesso ao cluster K3S
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Realizar deploy no Kubernetes (K3S)
+        run: |
+          NEW_VERSION="v${{ github.run_number }}"
+          echo "Nova versão da aplicação: $NEW_VERSION"
+          sed -i "s|image: .*|image: ghcr.io/${{ github.repository_owner }}/time:$NEW_VERSION|g" k3s/deployment.yaml
+          kubectl apply -f k3s/deployment.yaml  
+          
