@@ -2,57 +2,78 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Relógio Simples</title>
+    <title>Hora Certa</title>
     <style>
         body, html {
-            height: 100%; margin: 0; display: flex; justify-content: center;
-            align-items: center; background-color: #121212; color: #e0e0e0;
+            height: 100%;
+            margin: 0;
+            background-color: #121212;
+            color: #e0e0e0;
             font-family: 'Courier New', Courier, monospace;
+            display: block;
+        }
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         #clock { font-size: 15vw; font-weight: bold; }
-        .error { color: #cf6679; /* Cor vermelha para erros */ }
+        .info-msg {
+            margin-top: 1vw;
+            color: #b0b0b0;
+            font-size: 1.5vw;
+            max-width: 1200px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-
-    <div id="clock">Sincronizando...</div>
-
+    <div class="container">
+        <div id="clock">Sincronizando...</div>
+        <div class="info-msg">
+            <br>Hora obtida em tempo real de servidores oficiais NTP (Network Time Protocol).
+        </div>
+    </div>
     <script>
         const clockElement = document.getElementById('clock');
         let timeOffset = 0;
+        let clockInterval = null;
+        let isSynced = false;
 
         async function syncTime() {
             try {
                 const response = await fetch('/time');
                 const data = await response.json();
 
-                // **AQUI ESTÁ A MELHORIA**
-                // Verifica se a resposta contém um erro enviado pelo nosso servidor Go.
                 if (data.error) {
-                    console.error("Erro do servidor:", data.error);
-                    clockElement.textContent = "Falha";
-                    clockElement.classList.add("error"); // Adiciona a classe de erro para mudar a cor.
-                    return; // Para a execução se houve erro.
+                    throw new Error(data.error);
                 }
-                
+
                 const serverTime = new Date(data.time);
                 const clientTime = new Date();
                 timeOffset = serverTime.getTime() - clientTime.getTime();
 
-                // Inicia o relógio local apenas na primeira sincronização bem-sucedida.
-                if (!window.clockInterval) {
-                    updateClock(); // Chama uma vez para exibir a hora imediatamente.
-                    window.clockInterval = setInterval(updateClock, 1000);
-                }
+                isSynced = true;
 
+                if (!clockInterval) {
+                    updateClock();
+                    clockInterval = setInterval(updateClock, 1000);
+                }
             } catch (error) {
-                console.error("Erro na comunicação:", error);
-                clockElement.textContent = "Erro";
-                clockElement.classList.add("error");
+                isSynced = false;
+                // Tenta sincronizar novamente após 3 segundos
+                setTimeout(syncTime, 3000);
+                return;
             }
         }
 
         function updateClock() {
+            if (!isSynced) {
+                clockElement.textContent = "Sincronizando...";
+                return;
+            }
             const correctedTime = new Date(new Date().getTime() + timeOffset);
             const hours = String(correctedTime.getHours()).padStart(2, '0');
             const minutes = String(correctedTime.getMinutes()).padStart(2, '0');
@@ -60,8 +81,11 @@
             clockElement.textContent = `${hours}:${minutes}:${seconds}`;
         }
 
+        // Atualiza o relógio a cada segundo, mesmo enquanto sincroniza
+        setInterval(updateClock, 1000);
+
+        // Tenta sincronizar ao carregar
         syncTime();
     </script>
-
 </body>
 </html>
