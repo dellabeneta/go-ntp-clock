@@ -10,4 +10,4 @@ spec:
   ports:
     - port: 8080
       targetPort: 8080
-      nodePort: 30084      tree -a -L 2
+      nodePort: 30084
